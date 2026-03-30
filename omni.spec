@@ -7,8 +7,14 @@ from PyInstaller.utils.hooks import collect_submodules
 _spec_dir = Path(os.environ.get("SPECPATH", os.getcwd())).resolve()
 src = str(_spec_dir / "src")
 
-# Skip mcp.cli (pulls typer); server/client stacks do not need it.
+# Collect all mcp submodules (skip mcp.cli which pulls typer).
 hidden_mcp = collect_submodules("mcp", filter=lambda name: not name.startswith("mcp.cli"))
+
+# Collect all PySide6 submodules for the GUI.
+hidden_pyside6 = (
+    collect_submodules("PySide6", filter=lambda name: not name.startswith("PySide6.support"))
+    + collect_submodules("shiboken6")
+)
 
 a = Analysis(
     [str(Path(src) / "omni" / "__main__.py")],
@@ -16,6 +22,7 @@ a = Analysis(
     binaries=[],
     datas=[],
     hiddenimports=hidden_mcp
+    + hidden_pyside6
     + [
         "mcp.server.fastmcp",
         "mcp.server.stdio",
