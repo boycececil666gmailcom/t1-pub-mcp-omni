@@ -8,33 +8,23 @@ import sys
 import threading
 from typing import Any
 
-import httpx
-from PySide6.QtCore import QCoreApplication, QSize, Qt, Signal, Slot
-from PySide6.QtGui import QColor, QFont, QGuiApplication, QIcon, QPalette
+from PySide6.QtCore import QCoreApplication, Qt, Slot
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QPalette
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QCheckBox,
     QComboBox,
     QFrame,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMainWindow,
     QMessageBox,
-    QPlainTextEdit,
     QPushButton,
     QScrollArea,
     QSizePolicy,
     QSpacerItem,
     QStyleFactory,
-    QTableWidget,
-    QTableWidgetItem,
-    QTextEdit,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -55,13 +45,6 @@ def _system_font() -> QFont:
     else:
         f.setFamilies(["Segoe UI", "Helvetica Neue", "Helvetica"])
     f.setPointSize(13)
-    return f
-
-
-def _mono_font() -> QFont:
-    f = QFont()
-    f.setFamilies(["SF Mono", "Menlo", "Consolas", "Courier New"])
-    f.setPointSize(12)
     return f
 
 

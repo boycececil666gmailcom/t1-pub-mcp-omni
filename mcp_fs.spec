@@ -20,7 +20,6 @@ a = Analysis(
         "mcp.server.stdio",
         "mcp_filesystem.server",
         "pydantic_settings",
-        "shiboken6",
     ],
     hookspath=[],
     hooksconfig={},

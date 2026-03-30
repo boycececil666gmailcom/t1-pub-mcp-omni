@@ -1,4 +1,4 @@
-"""End-to-end: MCP tools + Ollama chat (async)."""
+"""End-to-end: Ollama chat with optional filesystem tool loop (async)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from omni.mcp_bridge import fs_mcp_session, mcp_tool_to_ollama, tool_result_to_text
+from omni.mcp_bridge import OLLAMA_TOOLS, exec_tool, tool_result_to_text
 from omni.ollama_chat import chat_with_tools_handled
 
 
@@ -42,18 +42,10 @@ async def run_turn(
             )
             return text, full[1:]
 
-        async with fs_mcp_session() as session:
-            listed = await session.list_tools()
-            ollama_tools = [mcp_tool_to_ollama(t) for t in listed.tools]
-
-            async def exec_tool(name: str, arguments: dict[str, Any]) -> str:
-                result = await session.call_tool(name, arguments)
-                return tool_result_to_text(result)
-
-            text, full = await chat_with_tools_handled(
-                client, base_url, model, messages, ollama_tools, exec_tool
-            )
-            return text, full[1:]
+        text, full = await chat_with_tools_handled(
+            client, base_url, model, messages, OLLAMA_TOOLS, exec_tool
+        )
+        return text, full[1:]
 
 
 async def _noop_executor(_name: str, _args: dict[str, Any]) -> str:

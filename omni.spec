@@ -7,7 +7,7 @@ from PyInstaller.utils.hooks import collect_submodules
 _spec_dir = Path(os.environ.get("SPECPATH", os.getcwd())).resolve()
 src = str(_spec_dir / "src")
 
-# Collect all mcp submodules (skip mcp.cli which pulls typer).
+# Keep MCP types import (mcp library is still a dependency).
 hidden_mcp = collect_submodules("mcp", filter=lambda name: not name.startswith("mcp.cli"))
 
 # Collect all PySide6 submodules for the GUI.
@@ -21,24 +21,7 @@ a = Analysis(
     pathex=[src],
     binaries=[],
     datas=[],
-    hiddenimports=hidden_mcp
-    + hidden_pyside6
-    + [
-        "mcp.server.fastmcp",
-        "mcp.server.stdio",
-        "mcp.client.stdio",
-        "pydantic_settings",
-        "uvicorn.logging",
-        "uvicorn.loops",
-        "uvicorn.loops.auto",
-        "uvicorn.protocols",
-        "uvicorn.protocols.http",
-        "uvicorn.protocols.http.auto",
-        "uvicorn.protocols.websockets",
-        "uvicorn.protocols.websockets.auto",
-        "uvicorn.lifespan",
-        "uvicorn.lifespan.on",
-    ],
+    hiddenimports=hidden_mcp + hidden_pyside6,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
