@@ -1,0 +1,10 @@
+---
+description: Use English when the user communicates in English
+alwaysApply: true
+---
+
+# Language Rule
+
+- **Always use English** in all responses, code comments, documentation, and commit messages when the user initiates or continues a conversation in English.
+- This applies to: replies, explanations, code output, terminal output summaries, file contents, and commit messages.
+- If the user writes in another language (e.g., Chinese), respond in that language instead.
