@@ -25,32 +25,32 @@ class OmniApp(tk.Tk):
         main = ttk.Frame(self, padding=8)
         main.pack(fill=tk.BOTH, expand=True)
 
-        settings = ttk.LabelFrame(main, text="连接", padding=6)
+        settings = ttk.LabelFrame(main, text="Connection", padding=6)
         settings.pack(fill=tk.X, pady=(0, 6))
 
         row1 = ttk.Frame(settings)
         row1.pack(fill=tk.X)
-        ttk.Label(row1, text="Ollama 地址").pack(side=tk.LEFT)
+        ttk.Label(row1, text="Ollama URL").pack(side=tk.LEFT)
         self.ollama_url = tk.StringVar(value="http://127.0.0.1:11434")
         ttk.Entry(row1, textvariable=self.ollama_url, width=48).pack(side=tk.LEFT, padx=6)
 
         row2 = ttk.Frame(settings)
         row2.pack(fill=tk.X, pady=(4, 0))
-        ttk.Label(row2, text="模型").pack(side=tk.LEFT)
+        ttk.Label(row2, text="Model").pack(side=tk.LEFT)
         self.model = tk.StringVar(value="qwen2.5:7b")
         ttk.Entry(row2, textvariable=self.model, width=28).pack(side=tk.LEFT, padx=6)
 
         self.use_mcp = tk.BooleanVar(value=True)
-        ttk.Checkbutton(row2, text="启用内置文件系统 MCP", variable=self.use_mcp).pack(side=tk.LEFT, padx=12)
+        ttk.Checkbutton(row2, text="Enable built-in filesystem MCP", variable=self.use_mcp).pack(side=tk.LEFT, padx=12)
 
         row3 = ttk.Frame(settings)
         row3.pack(fill=tk.X, pady=(4, 0))
-        ttk.Label(row3, text="沙盒根目录 (OMNI_FS_ROOT)").pack(side=tk.LEFT)
+        ttk.Label(row3, text="Sandbox root (OMNI_FS_ROOT)").pack(side=tk.LEFT)
         self.fs_root = tk.StringVar(value="")
         ttk.Entry(row3, textvariable=self.fs_root, width=56).pack(side=tk.LEFT, padx=6)
-        ttk.Label(row3, text="留空则使用进程当前工作目录", foreground="gray").pack(side=tk.LEFT)
+        ttk.Label(row3, text="Leave empty to use the process current working directory", foreground="gray").pack(side=tk.LEFT)
 
-        chat_frame = ttk.LabelFrame(main, text="对话", padding=4)
+        chat_frame = ttk.LabelFrame(main, text="Chat", padding=4)
         chat_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 6))
 
         self.log = scrolledtext.ScrolledText(chat_frame, wrap=tk.WORD, state=tk.DISABLED, height=22)
@@ -61,11 +61,11 @@ class OmniApp(tk.Tk):
         self.input = ttk.Entry(input_row)
         self.input.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
         self.input.bind("<Return>", lambda e: self._on_send())
-        self.send_btn = ttk.Button(input_row, text="发送", command=self._on_send)
+        self.send_btn = ttk.Button(input_row, text="Send", command=self._on_send)
         self.send_btn.pack(side=tk.RIGHT)
-        ttk.Button(input_row, text="清空会话", command=self._clear).pack(side=tk.RIGHT, padx=(0, 6))
+        ttk.Button(input_row, text="Clear session", command=self._clear).pack(side=tk.RIGHT, padx=(0, 6))
 
-        self.status = tk.StringVar(value="就绪")
+        self.status = tk.StringVar(value="Ready")
         ttk.Label(main, textvariable=self.status, foreground="gray").pack(anchor=tk.W)
 
         self.input.focus_set()
@@ -83,7 +83,7 @@ class OmniApp(tk.Tk):
         self.log.configure(state=tk.NORMAL)
         self.log.delete("1.0", tk.END)
         self.log.configure(state=tk.DISABLED)
-        self.status.set("已清空会话")
+        self.status.set("Session cleared")
 
     def _on_send(self) -> None:
         if self._busy:
@@ -92,10 +92,10 @@ class OmniApp(tk.Tk):
         if not text:
             return
         self.input.delete(0, tk.END)
-        self._append_log("你", text)
+        self._append_log("You", text)
         self._busy = True
         self.send_btn.configure(state=tk.DISABLED)
-        self.status.set("请求中…")
+        self.status.set("Requesting…")
 
         url = self.ollama_url.get().strip()
         model = self.model.get().strip()
@@ -132,16 +132,16 @@ class OmniApp(tk.Tk):
     def _on_error(self, msg: str) -> None:
         self._busy = False
         self.send_btn.configure(state=tk.NORMAL)
-        self.status.set("错误")
-        self._append_log("系统", msg)
+        self.status.set("Error")
+        self._append_log("System", msg)
         messagebox.showerror("OMNI", msg)
 
     def _on_done(self, reply: str, new_hist: list[dict[str, Any]]) -> None:
         self._history = new_hist
         self._busy = False
         self.send_btn.configure(state=tk.NORMAL)
-        self.status.set("就绪")
-        self._append_log("助手", reply or "(无文本回复)")
+        self.status.set("Ready")
+        self._append_log("Assistant", reply or "(No text reply)")
 
 
 def main() -> None:
