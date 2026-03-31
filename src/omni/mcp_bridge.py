@@ -1,26 +1,19 @@
 """In-process MCP bridge — no subprocess, no visible console window.
 
-Architecture
-────────────
-The AalMcp.exe subprocess is eliminated entirely.
-The filesystem tools (list_directory, read_text_file) are called directly
-from the same asyncio worker that runs the Ollama chat loop, after setting
-AAL_FS_ROOT in that thread's environment.  Tool schemas are kept in
-Ollama's OpenAI-style format so chat_pipeline.py can use them without
-any stdio transport.
+Filesystem tools are called directly from the same asyncio worker that runs
+the Ollama chat loop. Tool schemas use Ollama's OpenAI-compatible format so
+chat_pipeline.py can use them without any stdio transport.
+
+All actual filesystem logic lives in mcp_filesystem/core.py (single source of truth).
 """
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from mcp_filesystem.core import list_directory_impl, read_text_file_impl
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Ollama-format tool schemas (no MCP transport needed)
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Ollama-format tool schemas ────────────────────────────────────────────────
 
 OLLAMA_TOOLS: list[dict[str, Any]] = [
     {
@@ -73,18 +66,12 @@ OLLAMA_TOOLS: list[dict[str, Any]] = [
 ]
 
 
-def tool_result_to_text(result: str) -> str:
-    """Normalise a tool result to a plain string for the model."""
-    if not result:
-        return ""
-    return result
-
-
 async def exec_tool(name: str, arguments: dict[str, Any]) -> str:
     """Execute a filesystem tool directly in the current asyncio context.
 
     AAL_FS_ROOT must already be set in the caller's environment
-    (chat_pipeline.py sets it in the worker thread before asyncio.run)."""
+    (app.py sets it in the worker thread before asyncio.run).
+    """
     match name:
         case "list_directory":
             return list_directory_impl(arguments.get("relative_path", "."))
