@@ -1,4 +1,4 @@
-"""Path helpers — no longer spawns OmniFsMcp.exe subprocess."""
+"""Path helpers — no longer spawns AalMcp.exe subprocess."""
 
 from __future__ import annotations
 

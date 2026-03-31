@@ -1,4 +1,4 @@
-"""PySide6 UI for OMNI — macOS-inspired design."""
+"""CustomTkinter UI for AAL — AI Abstraction Layer."""
 
 from __future__ import annotations
 
@@ -8,44 +8,63 @@ import sys
 import threading
 from typing import Any
 
-from PySide6.QtCore import QCoreApplication, Qt, Slot
-from PySide6.QtGui import QColor, QFont, QGuiApplication, QPalette
-from PySide6.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QScrollArea,
-    QSizePolicy,
-    QSpacerItem,
-    QStyleFactory,
-    QVBoxLayout,
-    QWidget,
-)
-
+import customtkinter as ctk
 from omni import __version__
 from omni.chat_pipeline import run_turn
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Theme constants — macOS Apple Blue
+# ─────────────────────────────────────────────────────────────────────────────
+
+_ACCENT = "#007AFF"
+_FONT_FAMILY = ("SF Pro Text", "Helvetica Neue", "Helvetica", "Segoe UI")
+
+# Light-mode palette
+_LIGHT_BG = "#F5F5F7"
+_LIGHT_SIDEBAR = "#ECECED"
+_LIGHT_CARD = "#FFFFFF"
+_LIGHT_TEXT = "#1D1D1F"
+_LIGHT_SECONDARY_TEXT = "#86868B"
+_LIGHT_BORDER = "#D2D2D7"
+_LIGHT_BUBBLE_USER = "#007AFF"
+_LIGHT_BUBBLE_ASSISTANT_BG = "#E9E9EB"
+_LIGHT_INPUT_BG = "#FFFFFF"
+
+# Dark-mode palette
+_DARK_BG = "#1C1C1E"
+_DARK_SIDEBAR = "#2C2C2E"
+_DARK_CARD = "#3A3A3C"
+_DARK_TEXT = "#F5F5F7"
+_DARK_SECONDARY_TEXT = "#98989D"
+_DARK_BORDER = "#48484A"
+_DARK_BUBBLE_USER = "#0A84FF"
+_DARK_BUBBLE_ASSISTANT_BG = "#3A3A3C"
+_DARK_INPUT_BG = "#2C2C2E"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _system_font() -> QFont:
-    """Return the system UI font, preferring SF Pro / Helvetica on macOS."""
-    f = QFont()
-    if sys.platform == "darwin":
-        f.setFamilies(["SF Pro Text", "Helvetica Neue", "Helvetica"])
-    else:
-        f.setFamilies(["Segoe UI", "Helvetica Neue", "Helvetica"])
-    f.setPointSize(13)
-    return f
+def _system_font(size: int = 13, weight: str = "normal") -> tuple[str, int, str]:
+    """Return a system font tuple compatible with customtkinter."""
+    family = _FONT_FAMILY[0]
+    weight_map = {"normal": "normal", "bold": "bold"}
+    return (family, size, weight_map.get(weight, "normal"))
+
+
+def _palette() -> tuple[str, str, str, str, str, str, str]:
+    """Return (bg, sidebar_bg, card_bg, text, secondary_text, border, accent)."""
+    if ctk.get_appearance_mode() == "Dark":
+        return (
+            _DARK_BG, _DARK_SIDEBAR, _DARK_CARD,
+            _DARK_TEXT, _DARK_SECONDARY_TEXT, _DARK_BORDER, _ACCENT,
+        )
+    return (
+        _LIGHT_BG, _LIGHT_SIDEBAR, _LIGHT_CARD,
+        _LIGHT_TEXT, _LIGHT_SECONDARY_TEXT, _LIGHT_BORDER, _ACCENT,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,76 +72,82 @@ def _system_font() -> QFont:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class MessageBubble(QFrame):
+class MessageBubble(ctk.CTkFrame):
     """A chat message bubble — user on the right, assistant/system on the left."""
 
     ROLE_USER = "user"
     ROLE_ASSISTANT = "assistant"
     ROLE_SYSTEM = "system"
 
-    def __init__(self, role: str, text: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+    def __init__(self, master: Any, role: str, text: str, **kwargs: Any) -> None:
         self._role = role
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        self._build_ui(text)
+        _, _, _, text_c, sec_c, border_c, accent_c = _palette()
 
-    def _build_ui(self, text: str) -> None:
-        palette = QGuiApplication.palette()
-        is_dark = palette.color(QPalette.Window).lightness() < 128
+        super().__init__(
+            master,
+            fg_color="transparent",
+            bg_color="transparent",
+            corner_radius=0,
+            **kwargs,
+        )
+        self.configure(fg_color="transparent")
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(6)
+        row = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        row.pack(fill="x", pady=2)
 
         if self._role == self.ROLE_USER:
-            layout.addSpacerItem(QSpacerItem(40, 0, QSizePolicy.Minimum, QSizePolicy.Minimum))
-            bubble = QFrame(self)
-            bubble.setObjectName("bubble_user")
-            bubble.setStyleSheet(
-                f"#bubble_user {{ background:{_ACCENT_COLOR.lighter(200).name() if is_dark else _ACCENT_COLOR.name()}; "
-                f"border-radius: 14px; padding: 8px 14px; max-width: 70%; }}"
+            row.add spacing=ctk.CTkFrame(row, width=60, fg_color="transparent", corner_radius=0)
+            row.add spacing.pack(side="left", fill="y")
+            bubble = ctk.CTkFrame(
+                row,
+                fg_color=accent_c,
+                corner_radius=14,
             )
-            bubble_l = QVBoxLayout(bubble)
-            bubble_l.setContentsMargins(0, 0, 0, 0)
-            label = QLabel(text, bubble)
-            label.setWordWrap(True)
-            label.setTextFormat(Qt.PlainText)
-            label.setStyleSheet("color: #ffffff; background: transparent;")
-            bubble_l.addWidget(label)
-            layout.addWidget(bubble)
+            bubble.pack(side="right")
+            label = ctk.CTkLabel(
+                bubble,
+                text=text,
+                text_color="white",
+                font=_system_font(14),
+                wraplength=440,
+                justify="right",
+                padx=12,
+                pady=8,
+            )
+            label.pack()
 
         elif self._role == self.ROLE_ASSISTANT:
-            layout.addWidget(QLabel("🤖", self), 0, Qt.AlignBottom)
-            bubble = QFrame(self)
-            bubble.setObjectName("bubble_assistant")
-            bubble.setStyleSheet(
-                f"#bubble_assistant {{ background: "
-                f"{palette.color(QPalette.Window).lighter(108).name() if is_dark else palette.color(QPalette.Window).darker(106).name()}; "
-                f"border-radius: 14px; padding: 8px 14px; max-width: 70%; }}"
+            icon = ctk.CTkLabel(row, text="🤖", font=('', 16), text_color=sec_c)
+            icon.pack(side="left", anchor="s", padx=(0, 4))
+            bubble = ctk.CTkFrame(
+                row,
+                fg_color=border_c,
+                corner_radius=14,
             )
-            bubble_l = QVBoxLayout(bubble)
-            bubble_l.setContentsMargins(0, 0, 0, 0)
-            label = QLabel(text, bubble)
-            label.setWordWrap(True)
-            label.setTextFormat(Qt.PlainText)
-            label.setStyleSheet("background: transparent;")
-            bubble_l.addWidget(label)
-            layout.addWidget(bubble)
-            layout.addSpacerItem(QSpacerItem(40, 0, QSizePolicy.Minimum, QSizePolicy.Minimum))
+            bubble.pack(side="left")
+            label = ctk.CTkLabel(
+                bubble,
+                text=text,
+                text_color=text_c,
+                font=_system_font(14),
+                wraplength=440,
+                justify="left",
+                padx=12,
+                pady=8,
+            )
+            label.pack()
 
         else:  # system
-            layout.addSpacerItem(QSpacerItem(1, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
-            label = QLabel(f"⚠️ {text}", self)
-            label.setWordWrap(True)
-            label.setTextFormat(Qt.PlainText)
-            label.setStyleSheet(
-                f"color: {palette.color(QPalette.WindowText).lighter(150).name()}; "
-                f"font-size: 11pt; font-style: italic; background: transparent;"
+            warn = ctk.CTkLabel(
+                row,
+                text=f"⚠️  {text}",
+                text_color=sec_c,
+                font=_system_font(12, "normal"),
+                wraplength=520,
+                justify="left",
+                anchor="w",
             )
-            layout.addWidget(label)
-
-
-_ACCENT_COLOR = QColor("#007AFF")
+            warn.pack(fill="x")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -130,91 +155,121 @@ _ACCENT_COLOR = QColor("#007AFF")
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class ConnectionSettings(QWidget):
-    """Left-side settings panel with a macOS-style grouped look."""
+class ConnectionSettings(ctk.CTkFrame):
+    """Left-side settings panel with a macOS grouped-sections look."""
 
-    sig_connect = Signal(dict)  # emit validated settings dict
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+    def __init__(self, master: Any, **kwargs: Any) -> None:
+        _, sidebar_bg, _, text_c, sec_c, border_c, accent_c = _palette()
+        super().__init__(
+            master,
+            fg_color=sidebar_bg,
+            corner_radius=0,
+            **kwargs,
+        )
+        self._accent = accent_c
+        self._text = text_c
+        self._secondary = sec_c
+        self._border = border_c
         self._build_ui()
 
     def _build_ui(self) -> None:
-        palette = QGuiApplication.palette()
-        bg = palette.color(QPalette.Window)
-        is_dark = bg.lightness() < 128
+        self.grid_columnconfigure(0, weight=1)
 
-        self.setStyleSheet(
-            f"QWidget {{ background: transparent; }}"
-            f"QLabel {{ background: transparent; color: {palette.color(QPalette.WindowText).name()}; }}"
-            f"QLineEdit {{ background: {'#2c2c2e' if is_dark else '#ffffff'}; "
-            f"border: 1px solid {'#545458' if is_dark else '#c0c0c0'}; "
-            f"border-radius: 6px; padding: 4px 8px; color: inherit; }}"
-            f"QComboBox {{ background: {'#2c2c2e' if is_dark else '#ffffff'}; "
-            f"border: 1px solid {'#545458' if is_dark else '#c0c0c0'}; "
-            f"border-radius: 6px; padding: 4px 8px; color: inherit; }}"
-            f"QCheckBox {{ spacing: 6px; color: {palette.color(QPalette.WindowText).name()}; }}"
-            f"QCheckBox::indicator {{ width: 16px; height: 16px; border-radius: 4px; }}"
+        # ── Section header: Connection ───────────────────────────────────────
+        header = ctk.CTkLabel(
+            self,
+            text="Connection",
+            font=('', 11, 'bold'),
+            text_color=self._secondary,
+            anchor="w",
+            padx=4,
         )
+        header.grid(row=0, column=0, sticky="w", padx=4, pady=(0, 6))
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        # ── Section: Connection ──────────────────────────────────────────
-        section = QLabel("Connection")
-        section.setFont(QFont(section.font().family(), 11, QFont.Bold))
-        section.setStyleSheet(f"color: {palette.color(QPalette.PlaceholderText).name()}; padding-bottom: 4px;")
-        layout.addWidget(section)
-
-        form = QVBoxLayout()
-        form.setSpacing(8)
+        # ── Grouped card ─────────────────────────────────────────────────────
+        card = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        card.grid(row=1, column=0, sticky="ew", padx=4)
+        card.grid_columnconfigure(1, weight=1)
 
         # Ollama URL
-        row_url = QHBoxLayout()
-        lbl_url = QLabel("Ollama URL")
-        lbl_url.setFixedWidth(110)
-        self.url_input = QLineEdit("http://127.0.0.1:11434")
-        row_url.addWidget(lbl_url)
-        row_url.addWidget(self.url_input, 1)
-        form.addLayout(row_url)
+        self.url_input = ctk.CTkEntry(
+            card,
+            placeholder_text="http://127.0.0.1:11434",
+            font=_system_font(13),
+            height=30,
+            corner_radius=6,
+            border_width=1,
+            border_color=self._border,
+            fg_color="transparent",
+            text_color=self._text,
+        )
+        self.url_input.insert(0, "http://127.0.0.1:11434")
+        url_lbl = ctk.CTkLabel(card, text="Ollama URL", text_color=self._text, font=_system_font(13), anchor="w", width=100)
+        url_lbl.grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
+        self.url_input.grid(row=0, column=1, sticky="ew", pady=4)
 
         # Model
-        row_model = QHBoxLayout()
-        lbl_model = QLabel("Model")
-        lbl_model.setFixedWidth(110)
-        self.model_input = QComboBox()
-        self.model_input.setEditable(True)
-        self.model_input.addItems(["qwen2.5:7b", "llama3.2:3b", "mistral:7b", "gemma2:2b"])
-        self.model_input.setCurrentText("qwen2.5:7b")
-        row_model.addWidget(lbl_model)
-        row_model.addWidget(self.model_input, 1)
-        form.addLayout(row_model)
+        self.model_input = ctk.CTkComboBox(
+            card,
+            values=["qwen2.5:7b", "llama3.2:3b", "mistral:7b", "gemma2:2b"],
+            font=_system_font(13),
+            height=30,
+            corner_radius=6,
+            border_width=1,
+            border_color=self._border,
+            button_color=self._border,
+            dropdown_fg_color=self._border,
+            text_color=self._text,
+            dropdown_text_color=self._text,
+        )
+        self.model_input.set("qwen2.5:7b")
+        model_lbl = ctk.CTkLabel(card, text="Model", text_color=self._text, font=_system_font(13), anchor="w", width=100)
+        model_lbl.grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
+        self.model_input.grid(row=1, column=1, sticky="ew", pady=4)
 
         # MCP toggle
-        self.use_mcp_cb = QCheckBox("Enable built-in filesystem MCP")
-        self.use_mcp_cb.setChecked(True)
-        form.addWidget(self.use_mcp_cb)
+        self.use_mcp_var = ctk.BooleanVar(value=True)
+        self.use_mcp_cb = ctk.CTkCheckBox(
+            card,
+            text="Enable built-in filesystem MCP",
+            variable=self.use_mcp_var,
+            onvalue=True,
+            offvalue=False,
+            font=_system_font(13),
+            checkbox_width=18,
+            checkbox_height=18,
+            corner_radius=4,
+            border_width=1,
+            fg_color=self._accent,
+            hover=False,
+            text_color=self._text,
+        )
+        self.use_mcp_cb.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 4))
 
         # Sandbox root
-        row_root = QHBoxLayout()
-        lbl_root = QLabel("Sandbox root")
-        lbl_root.setFixedWidth(110)
-        self.fs_root_input = QLineEdit()
-        self.fs_root_input.setPlaceholderText("Leave empty = process working directory")
-        row_root.addWidget(lbl_root)
-        row_root.addWidget(self.fs_root_input, 1)
-        form.addLayout(row_root)
+        self.fs_root_input = ctk.CTkEntry(
+            card,
+            placeholder_text="Leave empty = process working directory",
+            font=_system_font(12),
+            height=30,
+            corner_radius=6,
+            border_width=1,
+            border_color=self._border,
+            fg_color="transparent",
+            text_color=self._text,
+        )
+        fs_lbl = ctk.CTkLabel(card, text="Sandbox root", text_color=self._text, font=_system_font(13), anchor="w", width=100)
+        fs_lbl.grid(row=3, column=0, sticky="w", padx=(0, 8), pady=4)
+        self.fs_root_input.grid(row=3, column=1, sticky="ew", pady=4)
 
-        layout.addLayout(form)
-        layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        self.rowconfigure(1, weight=1)
 
     def collect(self) -> dict[str, Any]:
         return {
-            "base_url": self.url_input.text().strip(),
-            "model": self.model_input.currentText().strip(),
-            "use_fs_mcp": self.use_mcp_cb.isChecked(),
-            "fs_root": self.fs_root_input.text().strip(),
+            "base_url": self.url_input.get().strip(),
+            "model": self.model_input.get().strip(),
+            "use_fs_mcp": self.use_mcp_var.get(),
+            "fs_root": self.fs_root_input.get().strip(),
         }
 
 
@@ -223,26 +278,90 @@ class ConnectionSettings(QWidget):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class StatusBar(QWidget):
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 2, 8, 2)
-        self._label = QLabel("Ready")
-        self._label.setStyleSheet(
-            f"color: {QGuiApplication.palette().color(QPalette.PlaceholderText).name()};"
-            "font-size: 11pt;"
+class StatusBar(ctk.CTkFrame):
+    def __init__(self, master: Any, **kwargs: Any) -> None:
+        _, _, _, text_c, sec_c, border_c, accent_c = _palette()
+        super().__init__(
+            master,
+            height=24,
+            fg_color="transparent",
+            corner_radius=0,
+            **kwargs,
         )
-        layout.addWidget(self._label, 1)
-        self._spinner = QLabel("●")
-        self._spinner.setStyleSheet("color: #007AFF; font-size: 10pt;")
-        self._spinner.hide()
-        layout.addWidget(self._spinner)
-        self.setMaximumHeight(24)
+        self._accent = accent_c
+        self.configure(height=24, fg_color="transparent")
+
+        self._label = ctk.CTkLabel(
+            self,
+            text="Ready",
+            text_color=sec_c,
+            font=('', 11),
+            anchor="w",
+        )
+        self._label.pack(side="left", fill="x", expand=True, padx=4)
+
+        self._spinner = ctk.CTkLabel(
+            self,
+            text="●",
+            text_color=accent_c,
+            font=('', 12),
+        )
+        self._spinner.pack(side="right", padx=4)
+        self._spinner.configure(text_color=sec_c)
 
     def set_status(self, text: str, busy: bool = False) -> None:
-        self._label.setText(text)
-        self._spinner.setVisible(busy)
+        _, _, _, _, sec_c, _, _ = _palette()
+        self._label.configure(text=text, text_color=sec_c)
+        if busy:
+            self._spinner.configure(text="◐", text_color=self._accent)
+        else:
+            self._spinner.configure(text="", text_color=sec_c)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scrollable chat frame
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class ChatArea(ctk.CTkScrollableFrame):
+    """Scrollable area that auto-scrolls to the bottom when new messages are added."""
+
+    def __init__(self, master: Any, **kwargs: Any) -> None:
+        _, _, _, _, _, _, _ = _palette()
+        super().__init__(
+            master,
+            fg_color="transparent",
+            scrollbar_button_color="transparent",
+            scrollbar_button_hover_color="transparent",
+            corner_radius=0,
+            **kwargs,
+        )
+        self.configure(fg_color="transparent")
+        self._layout = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        self._layout.pack(fill="both", expand=True)
+        self._layout.grid_columnconfigure(0, weight=1)
+
+        self._row = 0
+        self._should_scroll = True
+        self.bind("<MouseWheel>", lambda e: "break")
+
+        self._update_id = None
+
+    def add_bubble(self, role: str, text: str) -> MessageBubble:
+        bubble = MessageBubble(self._layout, role, text)
+        bubble.grid(row=self._row, column=0, sticky="ew", padx=2, pady=2)
+        self._row += 1
+
+        self.after(50, self._scroll_to_bottom)
+        return bubble
+
+    def _scroll_to_bottom(self) -> None:
+        self._canv.yview_moveto(1.0)
+
+    def clear(self) -> None:
+        for widget in self._layout.winfo_children():
+            widget.destroy()
+        self._row = 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -250,172 +369,191 @@ class StatusBar(QWidget):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-class OmniWindow(QMainWindow):
-    """Main OMNI window — macOS-style toolbar + sidebar layout."""
+class AALWindow(ctk.CTk):
+    """Main AAL window — macOS-style sidebar + content layout."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle(f"OMNI — Orchestrated Multi-Model Intelligence v{__version__}")
-        self.setMinimumSize(860, 580)
+
         self._history: list[dict[str, Any]] = []
         self._busy = False
 
-        self._apply_style()
+        self.title(f"AAL — AI Abstraction Layer v{__version__}")
+        self.geometry("960x660")
+        self.minsize(860, 580)
 
-        central = QWidget(self)
-        self.setCentralWidget(central)
-        root = QHBoxLayout(central)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
+        # Configure CustomTkinter appearance
+        ctk.set_appearance_mode("system")
+        ctk.set_default_color_theme("blue")
 
-        # ── Left sidebar ───────────────────────────────────────────────────
-        self._sidebar = QFrame()
-        self._sidebar.setMaximumWidth(270)
-        self._sidebar.setMinimumWidth(220)
-        self._sidebar_layout = QVBoxLayout(self._sidebar)
-        self._sidebar_layout.setContentsMargins(16, 16, 16, 16)
-        self._sidebar_layout.setSpacing(16)
+        bg, sidebar_bg, _, text_c, sec_c, border_c, accent_c = _palette()
 
-        logo = QLabel("OMNI")
-        logo.setStyleSheet(
-            f"font-size: 22pt; font-weight: 700; color: {_ACCENT_COLOR.name()};"
-            "letter-spacing: 2px; background: transparent;"
+        # Window background
+        self.configure(fg_color=bg)
+
+        # ── Root layout ───────────────────────────────────────────────────────
+        root = ctk.CTkFrame(self, fg_color=bg, corner_radius=0)
+        root.pack(fill="both", expand=True)
+        root.grid_columnconfigure(1, weight=1)
+        root.grid_rowconfigure(0, weight=1)
+
+        # ── Left sidebar ──────────────────────────────────────────────────────
+        sidebar = ctk.CTkFrame(root, width=260, fg_color=sidebar_bg, corner_radius=0)
+        sidebar.grid(row=0, column=0, sticky="nsew", padx=(0, 1))
+        sidebar.grid_rowconfigure(5, weight=1)
+        sidebar._width = 260
+
+        sb_pad = 20
+
+        # Logo
+        logo = ctk.CTkLabel(
+            sidebar,
+            text="AAL",
+            font=("-", 22, "bold"),
+            text_color=accent_c,
+            anchor="w",
         )
-        self._sidebar_layout.addWidget(logo)
+        logo.pack(anchor="w", padx=sb_pad, pady=(sb_pad, 2))
 
-        version_label = QLabel(f"v{__version__}")
-        version_label.setStyleSheet(
-            f"color: {QGuiApplication.palette().color(QPalette.PlaceholderText).name()};"
-            "font-size: 10pt; background: transparent;"
+        # Version
+        ver = ctk.CTkLabel(
+            sidebar,
+            text=f"v{__version__}",
+            font=("-", 10),
+            text_color=sec_c,
+            anchor="w",
         )
-        self._sidebar_layout.addWidget(version_label)
+        ver.pack(anchor="w", padx=sb_pad, pady=(0, sb_pad))
 
-        sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet("border: none; border-top: 1px solid #e0e0e0;")
-        self._sidebar_layout.addWidget(sep)
+        # Separator
+        sep = ctk.CTkFrame(sidebar, height=1, fg_color=border_c, corner_radius=0)
+        sep.pack(fill="x", padx=sb_pad, pady=(0, sb_pad))
 
-        self._settings = ConnectionSettings()
-        self._sidebar_layout.addWidget(self._settings, 1)
+        # Settings panel
+        self._settings = ConnectionSettings(sidebar, fg_color=sidebar_bg)
+        self._settings.pack(side="top", fill="both", expand=True, padx=4, pady=0)
 
-        self._sidebar_layout.addSpacerItem(
-            QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # ── Right content area ───────────────────────────────────────────────
+        content = ctk.CTkFrame(root, fg_color=bg, corner_radius=0)
+        content.grid(row=0, column=1, sticky="nsew")
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_rowconfigure(2, weight=1)
+        content._padding = 16
+
+        # Title
+        title = ctk.CTkLabel(
+            content,
+            text="Chat",
+            font=("-", 15, "bold"),
+            text_color=text_c,
+            anchor="w",
         )
-
-        # ── Right content area ─────────────────────────────────────────────
-        self._content = QWidget()
-        content_layout = QVBoxLayout(self._content)
-        content_layout.setContentsMargins(16, 16, 16, 8)
-        content_layout.setSpacing(8)
-
-        # Title bar
-        title = QLabel("Chat")
-        title.setFont(QFont(title.font().family(), 15, QFont.Bold))
-        content_layout.addWidget(title)
+        title.grid(row=0, column=0, sticky="w", padx=content._padding, pady=(content._padding, 8))
 
         # Chat area
-        self._chat = QScrollArea()
-        self._chat.setWidgetResizable(True)
-        self._chat.setFrameShape(QFrame.NoFrame)
-        self._chat.setStyleSheet("background: transparent; border: none;")
-        self._chat_widget = QWidget()
-        self._chat_layout = QVBoxLayout(self._chat_widget)
-        self._chat_layout.setAlignment(Qt.AlignTop)
-        self._chat_layout.setSpacing(4)
-        self._chat_layout.setContentsMargins(0, 0, 0, 0)
-        self._chat.setWidget(self._chat_widget)
-        content_layout.addWidget(self._chat, 1)
-
-        # Input row
-        input_frame = QFrame()
-        input_frame.setStyleSheet(
-            f"QFrame {{ background: {QGuiApplication.palette().color(QPalette.Window).name()}; }}"
+        self._chat = ChatArea(content, fg_color=bg)
+        self._chat.grid(
+            row=1, column=0, sticky="nsew",
+            padx=content._padding, pady=(0, 8),
         )
-        input_h = QHBoxLayout(input_frame)
-        input_h.setContentsMargins(0, 0, 0, 0)
-        input_h.setSpacing(8)
-
-        self._input = QLineEdit()
-        self._input.setPlaceholderText("Ask OMNI anything…")
-        self._input.setStyleSheet(
-            f"QLineEdit {{ background: {QGuiApplication.palette().color(QPalette.Base).name()}; "
-            f"border: 1px solid #c0c0c0; border-radius: 8px; padding: 8px 12px; font-size: 13pt; }}"
+        self._chat.configure(
+            fg_color=bg,
         )
-        self._input.returnPressed.connect(self._on_send)
-        input_h.addWidget(self._input, 1)
 
-        self._send_btn = QPushButton("Send")
-        self._send_btn.setFixedWidth(80)
-        self._send_btn.setCursor(Qt.PointingHandCursor)
-        self._send_btn.clicked.connect(self._on_send)
-        input_h.addWidget(self._send_btn)
+        # Input area
+        input_frame = ctk.CTkFrame(content, fg_color=bg, corner_radius=0)
+        input_frame.grid(row=2, column=0, sticky="sew", padx=content._padding, pady=(0, 8))
+        input_frame.grid_columnconfigure(0, weight=1)
+        input_frame.grid_rowconfigure(0, weight=1)
 
-        self._clear_btn = QPushButton("Clear")
-        self._clear_btn.setFixedWidth(70)
-        self._clear_btn.setCursor(Qt.PointingHandCursor)
-        self._clear_btn.clicked.connect(self._clear)
-        input_h.addWidget(self._clear_btn)
+        self._input = ctk.CTkTextbox(
+            input_frame,
+            height=72,
+            font=_system_font(14),
+            corner_radius=10,
+            border_width=1,
+            border_color=border_c,
+            fg_color="transparent",
+            text_color=text_c,
+            placeholder_text="Ask AAL anything…",
+            placeholder_text_color=sec_c,
+            wrap="word",
+            insert_tap_color=accent_c,
+        )
+        self._input.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        self._input.bind("<Return>", self._on_send)
 
-        content_layout.addWidget(input_frame)
+        btn_row = ctk.CTkFrame(input_frame, fg_color="transparent", corner_radius=0)
+        btn_row.grid(row=0, column=1, sticky="se", pady=2)
+
+        self._send_btn = ctk.CTkButton(
+            btn_row,
+            text="Send",
+            font=_system_font(14),
+            width=80,
+            height=36,
+            corner_radius=8,
+            fg_color=accent_c,
+            hover_color="#0062CC",
+            text_color="white",
+            border_width=0,
+            command=self._on_send,
+        )
+        self._send_btn.pack(side="left", padx=(0, 6))
+
+        self._clear_btn = ctk.CTkButton(
+            btn_row,
+            text="Clear",
+            font=_system_font(14),
+            width=72,
+            height=36,
+            corner_radius=8,
+            fg_color=border_c,
+            hover_color=sec_c,
+            text_color=text_c,
+            border_width=0,
+            command=self._clear,
+        )
+        self._clear_btn.pack(side="left")
 
         # Status bar
-        self._status_bar = StatusBar()
-        content_layout.addWidget(self._status_bar)
-
-        root.addWidget(self._sidebar)
-        root.addWidget(self._content)
-
-        self._input.setFocus()
-
-    def _apply_style(self) -> None:
-        palette = QGuiApplication.palette()
-        is_dark = palette.color(QPalette.Window).lightness() < 128
-
-        btn_style = (
-            f"QPushButton {{ background: {_ACCENT_COLOR.name() if not is_dark else _ACCENT_COLOR.lighter(180).name()}; "
-            f"color: #ffffff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13pt; font-weight: 500; }}"
-            f"QPushButton:hover {{ background: {_ACCENT_COLOR.lighter(110).name() if not is_dark else _ACCENT_COLOR.lighter(150).name()}; }}"
-            f"QPushButton:pressed {{ background: {_ACCENT_COLOR.darker(110).name() if not is_dark else _ACCENT_COLOR.darker(110).name()}; }}"
-            f"QPushButton:disabled {{ background: #aaaaaa; color: #666666; }}"
+        self._status_bar = StatusBar(content, fg_color=bg)
+        self._status_bar.grid(
+            row=3, column=0, sticky="ew",
+            padx=content._padding, pady=(0, 4),
         )
-        self.setStyleSheet(btn_style)
 
-    # ── Public API ──────────────────────────────────────────────────────────
+        self._input.focus()
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
 
-    @Slot()
+    # ── Public API ─────────────────────────────────────────────────────────────
+
     def _clear(self) -> None:
         if self._busy:
             return
         self._history.clear()
-        while self._chat_layout.count():
-            item = self._chat_layout.takeAt(0)
-            if item and item.widget():
-                item.widget().deleteLater()
+        self._chat.clear()
         self._status_bar.set_status("Session cleared")
 
-    @Slot()
-    def _on_send(self) -> None:
+    def _on_send(self, event: Any = None) -> str | None:
         if self._busy:
-            return
-        text = self._input.text().strip()
+            return None
+        text = self._input.get("1.0", "end").strip()
         if not text:
-            return
-        self._input.clear()
+            return None
+        self._input.delete("1.0", "end")
 
-        # Add user bubble
-        self._add_bubble(MessageBubble.ROLE_USER, text)
+        self._chat.add_bubble(MessageBubble.ROLE_USER, text)
 
         self._busy = True
-        self._send_btn.setEnabled(False)
-        self._clear_btn.setEnabled(False)
+        self._send_btn.configure(state="disabled")
+        self._clear_btn.configure(state="disabled")
         self._status_bar.set_status("Requesting…", busy=True)
 
         settings = self._settings.collect()
         hist_snapshot = list(self._history)
 
         def worker() -> None:
-            import os
-
             if settings["fs_root"]:
                 os.environ["OMNI_FS_ROOT"] = settings["fs_root"]
             elif "OMNI_FS_ROOT" in os.environ:
@@ -432,38 +570,40 @@ class OmniWindow(QMainWindow):
                     )
                 )
             except Exception as exc:  # noqa: BLE001
-                self._on_error(str(exc))
+                self.after(0, self._on_error, str(exc))
                 return
 
-            self._on_done(reply or "(No text reply)", new_hist)
+            self.after(0, self._on_done, reply or "(No text reply)", new_hist)
 
         threading.Thread(target=worker, daemon=True).start()
+        return None
 
-    def _add_bubble(self, role: str, text: str) -> None:
-        bubble = MessageBubble(role, text)
-        self._chat_layout.addWidget(bubble)
-        QCoreApplication.processEvents()
-        self._chat.verticalScrollBar().setValue(
-            self._chat.verticalScrollBar().maximum()
-        )
-
-    @Slot(str)
     def _on_error(self, msg: str) -> None:
         self._busy = False
-        self._send_btn.setEnabled(True)
-        self._clear_btn.setEnabled(True)
+        self._send_btn.configure(state="normal")
+        self._clear_btn.configure(state="normal")
         self._status_bar.set_status("Error", busy=False)
-        self._add_bubble(MessageBubble.ROLE_SYSTEM, msg)
-        QMessageBox.critical(self, "OMNI — Error", msg)
+        self._chat.add_bubble(MessageBubble.ROLE_SYSTEM, msg)
+        try:
+            from customtkinter import CTkMessagebox
+            CTkMessagebox(
+                title="AAL — Error",
+                message=msg,
+                icon="cancel",
+                fg_color=_palette()[1],
+                text_color=_palette()[3],
+            )
+        except Exception:  # noqa: BLE001
+            from tkinter import messagebox
+            messagebox.showerror("AAL — Error", msg)
 
-    @Slot(str, list)
     def _on_done(self, reply: str, new_hist: list[dict[str, Any]]) -> None:
         self._history = new_hist
         self._busy = False
-        self._send_btn.setEnabled(True)
-        self._clear_btn.setEnabled(True)
+        self._send_btn.configure(state="normal")
+        self._clear_btn.configure(state="normal")
         self._status_bar.set_status("Ready", busy=False)
-        self._add_bubble(MessageBubble.ROLE_ASSISTANT, reply)
+        self._chat.add_bubble(MessageBubble.ROLE_ASSISTANT, reply)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -472,19 +612,10 @@ class OmniWindow(QMainWindow):
 
 
 def main() -> None:
-    app = QApplication(sys.argv)
-    app.setStyle(QStyleFactory.create("Fusion"))
-    QCoreApplication.setApplicationName("OMNI")
-    QCoreApplication.setApplicationVersion(__version__)
-
-    # macOS-inspired font
-    font = _system_font()
-    app.setFont(font)
-
-    window = OmniWindow()
-    window.resize(960, 660)
-    window.show()
-    sys.exit(app.exec())
+    ctk.set_appearance_mode("system")
+    ctk.set_default_color_theme("blue")
+    app = AALWindow()
+    app.mainloop()
 
 
 if __name__ == "__main__":

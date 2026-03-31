@@ -7,21 +7,18 @@ from PyInstaller.utils.hooks import collect_submodules
 _spec_dir = Path(os.environ.get("SPECPATH", os.getcwd())).resolve()
 src = str(_spec_dir / "src")
 
-# Keep MCP types import (mcp library is still a dependency).
-hidden_mcp = collect_submodules("mcp", filter=lambda name: not name.startswith("mcp.cli"))
-
-# Collect all PySide6 submodules for the GUI.
-hidden_pyside6 = (
-    collect_submodules("PySide6", filter=lambda name: not name.startswith("PySide6.support"))
-    + collect_submodules("shiboken6")
-)
+# ── MCP: only collect the submodules the bridge / server actually need.
+hidden_mcp = [
+    m for m in collect_submodules("mcp")
+    if not m.startswith("mcp.cli")
+]
 
 a = Analysis(
     [str(Path(src) / "omni" / "__main__.py")],
     pathex=[src],
     binaries=[],
     datas=[],
-    hiddenimports=hidden_mcp + hidden_pyside6,
+    hiddenimports=hidden_mcp,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -38,7 +35,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="Omni",
+    name="AAL",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
