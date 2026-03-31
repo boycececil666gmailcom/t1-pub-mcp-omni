@@ -2,19 +2,14 @@
 import os
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_submodules
+
 _spec_dir = Path(os.environ.get("SPECPATH", os.getcwd())).resolve()
 src = str(_spec_dir / "src")
 
 # Entry is package __main__: PyInstaller sometimes omits sibling submodules from the
-# graph; force-include the whole omni tree and mcp_filesystem (used by omni.mcp_bridge).
-hidden_omni = [
-    "omni",
-    "omni.app",
-    "omni.chat_pipeline",
-    "omni.mcp_bridge",
-    "omni.ollama_chat",
-    "omni.paths",
-]
+# graph; force-include the whole aal tree and mcp_filesystem (used by aal.mcp_bridge).
+hidden_aal = collect_submodules("omni")
 
 hidden_mcp_fs = [
     "mcp_filesystem",
@@ -33,7 +28,7 @@ a = Analysis(
     pathex=[src],
     binaries=[],
     datas=[],
-    hiddenimports=hidden_mcp + hidden_omni + hidden_mcp_fs,
+    hiddenimports=hidden_mcp + hidden_aal + hidden_mcp_fs,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
