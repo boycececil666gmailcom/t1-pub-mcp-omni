@@ -96,8 +96,8 @@ class MessageBubble(ctk.CTkFrame):
         row.pack(fill="x", pady=2)
 
         if self._role == self.ROLE_USER:
-            row.add spacing=ctk.CTkFrame(row, width=60, fg_color="transparent", corner_radius=0)
-            row.add spacing.pack(side="left", fill="y")
+            spacing = ctk.CTkFrame(row, width=60, fg_color="transparent", corner_radius=0)
+            spacing.pack(side="left", fill="y")
             bubble = ctk.CTkFrame(
                 row,
                 fg_color=accent_c,
@@ -555,9 +555,9 @@ class AALWindow(ctk.CTk):
 
         def worker() -> None:
             if settings["fs_root"]:
-                os.environ["OMNI_FS_ROOT"] = settings["fs_root"]
-            elif "OMNI_FS_ROOT" in os.environ:
-                del os.environ["OMNI_FS_ROOT"]
+                os.environ["AAL_FS_ROOT"] = settings["fs_root"]
+            elif "AAL_FS_ROOT" in os.environ:
+                del os.environ["AAL_FS_ROOT"]
 
             try:
                 reply, new_hist = asyncio.run(

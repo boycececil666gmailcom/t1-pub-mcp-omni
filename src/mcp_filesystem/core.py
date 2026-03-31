@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def get_root() -> Path:
-    raw = os.environ.get("OMNI_FS_ROOT", "").strip()
+    raw = os.environ.get("AAL_FS_ROOT", "").strip()
     if raw:
         return Path(raw).expanduser().resolve()
     return Path.cwd().resolve()

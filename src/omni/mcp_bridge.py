@@ -2,10 +2,10 @@
 
 Architecture
 ────────────
-The OmniFsMcp.exe subprocess is eliminated entirely.
+The AalMcp.exe subprocess is eliminated entirely.
 The filesystem tools (list_directory, read_text_file) are called directly
 from the same asyncio worker that runs the Ollama chat loop, after setting
-OMNI_FS_ROOT in that thread's environment.  Tool schemas are kept in
+AAL_FS_ROOT in that thread's environment.  Tool schemas are kept in
 Ollama's OpenAI-style format so chat_pipeline.py can use them without
 any stdio transport.
 """
@@ -83,7 +83,7 @@ def tool_result_to_text(result: str) -> str:
 async def exec_tool(name: str, arguments: dict[str, Any]) -> str:
     """Execute a filesystem tool directly in the current asyncio context.
 
-    OMNI_FS_ROOT must already be set in the caller's environment
+    AAL_FS_ROOT must already be set in the caller's environment
     (chat_pipeline.py sets it in the worker thread before asyncio.run)."""
     match name:
         case "list_directory":

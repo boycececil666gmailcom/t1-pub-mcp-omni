@@ -6,9 +6,9 @@ from mcp_filesystem.core import list_directory_impl, read_text_file_impl
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP(
-    "omni-filesystem",
+    "aal-filesystem",
     instructions=(
-        "Filesystem tools restricted to OMNI_FS_ROOT (or the process working directory). "
+        "Filesystem tools restricted to AAL_FS_ROOT (or the process working directory). "
         "Paths are relative to that root. Listing and reading text files only."
     ),
 )

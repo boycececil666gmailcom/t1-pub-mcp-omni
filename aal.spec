@@ -2,15 +2,30 @@
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
-
 _spec_dir = Path(os.environ.get("SPECPATH", os.getcwd())).resolve()
 src = str(_spec_dir / "src")
 
-# ── MCP: only collect the submodules the bridge / server actually need.
+# Entry is package __main__: PyInstaller sometimes omits sibling submodules from the
+# graph; force-include the whole omni tree and mcp_filesystem (used by omni.mcp_bridge).
+hidden_omni = [
+    "omni",
+    "omni.app",
+    "omni.chat_pipeline",
+    "omni.mcp_bridge",
+    "omni.ollama_chat",
+    "omni.paths",
+]
+
+hidden_mcp_fs = [
+    "mcp_filesystem",
+    "mcp_filesystem.core",
+]
+
+# mcp.cli imports typer and sys.exits if missing — do not use collect_submodules("mcp").
 hidden_mcp = [
-    m for m in collect_submodules("mcp")
-    if not m.startswith("mcp.cli")
+    "mcp.server",
+    "mcp.types",
+    "mcp.server.stdio",
 ]
 
 a = Analysis(
@@ -18,7 +33,7 @@ a = Analysis(
     pathex=[src],
     binaries=[],
     datas=[],
-    hiddenimports=hidden_mcp,
+    hiddenimports=hidden_mcp + hidden_omni + hidden_mcp_fs,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

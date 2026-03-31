@@ -1,1 +1,1 @@
-"""Minimal MCP filesystem server for OMNI (sandboxed)."""
+"""Minimal MCP filesystem server for AAL (sandboxed)."""
